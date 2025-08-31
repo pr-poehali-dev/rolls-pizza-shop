@@ -135,6 +135,7 @@ export default function Index() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [cartBounce, setCartBounce] = useState(false)
 
   const categories = [
     { id: 'all', name: 'Все', icon: 'Grid3X3' },
@@ -171,6 +172,10 @@ export default function Index() {
     } else {
       setCart([...cart, cartItem])
     }
+
+    // Анимация корзины
+    setCartBounce(true)
+    setTimeout(() => setCartBounce(false), 600)
   }
 
   const removeFromCart = (id: number, size?: string) => {
@@ -197,10 +202,15 @@ export default function Index() {
     return cart.reduce((total, item) => total + item.quantity, 0)
   }
 
+  const getProductQuantity = (productId: number, size?: string) => {
+    const item = cart.find(item => item.id === productId && item.size === size)
+    return item ? item.quantity : 0
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
@@ -218,12 +228,14 @@ export default function Index() {
               </div>
               <Button 
                 onClick={() => setCartOpen(true)}
-                className="bg-orange-600 hover:bg-orange-700 relative"
+                className={`bg-orange-600 hover:bg-orange-700 relative transition-all duration-300 ${
+                  cartBounce ? 'animate-bounce-cart' : ''
+                }`}
               >
                 <Icon name="ShoppingCart" size={16} />
                 <span className="ml-2">Корзина</span>
                 {getTotalItems() > 0 && (
-                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white">
+                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white animate-fade-in">
                     {getTotalItems()}
                   </Badge>
                 )}
@@ -233,7 +245,7 @@ export default function Index() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
         {/* Hero Section */}
         <section className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -316,7 +328,7 @@ export default function Index() {
               key={category.id}
               variant={activeCategory === category.id ? 'default' : 'outline'}
               onClick={() => setActiveCategory(category.id)}
-              className={`${
+              className={`transition-all duration-200 ${
                 activeCategory === category.id 
                   ? 'bg-orange-600 hover:bg-orange-700' 
                   : 'border-orange-200 hover:bg-orange-50'
@@ -331,7 +343,7 @@ export default function Index() {
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+            <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:scale-105">
               <CardContent className="p-0">
                 <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center mb-4 relative">
                   <div className="text-6xl">
@@ -341,7 +353,7 @@ export default function Index() {
                     {product.category === 'desserts' && '🍰'}
                   </div>
                   {product.isNew && (
-                    <Badge className="absolute top-2 right-2 bg-pink-500">
+                    <Badge className="absolute top-2 right-2 bg-pink-500 animate-fade-in">
                       новинка
                     </Badge>
                   )}
@@ -352,26 +364,77 @@ export default function Index() {
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-bold text-gray-900">от {product.price}₽</span>
                     {product.sizes ? (
-                      <div className="flex space-x-1">
-                        {product.sizes.map((size) => (
-                          <Button
-                            key={size}
-                            size="sm"
-                            onClick={() => addToCart(product, size)}
-                            className="bg-orange-600 hover:bg-orange-700 text-xs px-2"
-                          >
-                            {size}
-                          </Button>
-                        ))}
+                      <div className="flex flex-col space-y-1">
+                        {product.sizes.map((size) => {
+                          const quantity = getProductQuantity(product.id, size)
+                          return (
+                            <div key={size} className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-500 w-8">{size}</span>
+                              {quantity > 0 ? (
+                                <div className="flex items-center space-x-1 animate-fade-in">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateQuantity(product.id, size, quantity - 1)}
+                                    className="w-6 h-6 p-0 text-xs hover:bg-red-50"
+                                  >
+                                    -
+                                  </Button>
+                                  <span className="text-xs font-medium w-4 text-center">{quantity}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => updateQuantity(product.id, size, quantity + 1)}
+                                    className="w-6 h-6 p-0 text-xs hover:bg-green-50"
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => addToCart(product, size)}
+                                  className="bg-orange-600 hover:bg-orange-700 text-xs px-2 h-6 transition-all duration-200 hover:scale-110"
+                                >
+                                  Добавить
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : (
-                      <Button
-                        onClick={() => addToCart(product)}
-                        className="bg-orange-600 hover:bg-orange-700"
-                        size="sm"
-                      >
-                        Добавить
-                      </Button>
+                      <div className="flex items-center">
+                        {getProductQuantity(product.id) > 0 ? (
+                          <div className="flex items-center space-x-2 animate-fade-in">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(product.id, undefined, getProductQuantity(product.id) - 1)}
+                              className="w-8 h-8 p-0 hover:bg-red-50"
+                            >
+                              -
+                            </Button>
+                            <span className="font-medium w-6 text-center">{getProductQuantity(product.id)}</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(product.id, undefined, getProductQuantity(product.id) + 1)}
+                              className="w-8 h-8 p-0 hover:bg-green-50"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => addToCart(product)}
+                            className="bg-orange-600 hover:bg-orange-700 transition-all duration-200 hover:scale-110"
+                            size="sm"
+                          >
+                            Добавить
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -383,23 +446,26 @@ export default function Index() {
 
       {/* Cart Sidebar */}
       {cartOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
-          <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 animate-fade-in">
+          <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl animate-slide-in">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">Корзина</h2>
-                <Button variant="ghost" onClick={() => setCartOpen(false)}>
+                <Button variant="ghost" onClick={() => setCartOpen(false)} className="hover:bg-gray-100">
                   <Icon name="X" size={20} />
                 </Button>
               </div>
             </div>
             <div className="p-6 flex-1 overflow-y-auto">
               {cart.length === 0 ? (
-                <p className="text-gray-500 text-center">Корзина пуста</p>
+                <div className="text-center py-8">
+                  <Icon name="ShoppingCart" size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">Корзина пуста</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {cart.map((item, index) => (
-                    <div key={`${item.id}-${item.size}-${index}`} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div key={`${item.id}-${item.size}-${index}`} className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="text-2xl">
                         {item.category === 'pizza' && '🍕'}
                         {item.category === 'rolls' && '🍣'}
@@ -416,14 +482,16 @@ export default function Index() {
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.id, item.size, item.quantity - 1)}
+                          className="hover:bg-red-50"
                         >
                           -
                         </Button>
-                        <span>{item.quantity}</span>
+                        <span className="font-medium w-8 text-center">{item.quantity}</span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.id, item.size, item.quantity + 1)}
+                          className="hover:bg-green-50"
                         >
                           +
                         </Button>
@@ -431,6 +499,7 @@ export default function Index() {
                           size="sm"
                           variant="ghost"
                           onClick={() => removeFromCart(item.id, item.size)}
+                          className="hover:bg-red-50 text-red-600"
                         >
                           <Icon name="Trash2" size={16} />
                         </Button>
@@ -441,12 +510,12 @@ export default function Index() {
               )}
             </div>
             {cart.length > 0 && (
-              <div className="p-6 border-t">
+              <div className="p-6 border-t bg-gray-50">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-xl font-bold">Итого:</span>
-                  <span className="text-xl font-bold">{getTotalPrice()}₽</span>
+                  <span className="text-xl font-bold text-orange-600">{getTotalPrice()}₽</span>
                 </div>
-                <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                <Button className="w-full bg-orange-600 hover:bg-orange-700 transition-all duration-200 hover:scale-105">
                   Оформить заказ
                 </Button>
               </div>
