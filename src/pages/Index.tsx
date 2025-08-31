@@ -446,8 +446,14 @@ export default function Index() {
 
       {/* Cart Sidebar */}
       {cartOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 animate-fade-in">
-          <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl animate-slide-in">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 animate-fade-in"
+          onClick={() => setCartOpen(false)}
+        >
+          <div 
+            className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl animate-slide-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">Корзина</h2>
